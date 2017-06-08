@@ -1,0 +1,8 @@
+Bienvenue sur Discorde
+Une expérience interactive réalisée par Alice Lepetit, Samuel Lepoil et Valentin Comte
+
+Afin de lancer l'expérience, ouvrez le fichier Base.html dans un navigateur récent (testé sur Chrome), et suivez les instructions données par le système.
+
+Amusez-vous bien.
+
+L'équipe Discorde.

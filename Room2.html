@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset=utf-8>
+		<title>Dungeon Architect</title>
+		<style>
+			body { margin: 0; background-color: #211D57}
+			div {position: absolute;}
+			canvas { width: 100%; height: 100%; }
+			img { position: absolute; z-index:8;}
+			@font-face {font-family: "PixelOperator"; src: "assets/PixelOperator.ttf";}
+		</style>
+		<script>
+			var gameloop, animloop, tchatloop, canvas, ctx, closedWalls, openWalls, fadeIn, parameters;
+
+			var xStep = 2;
+			var yStep = 2;
+
+			var hasPlayed = false;
+
+			var nextRoom = "Room3.html";
+			var argument = "";
+
+			var knight = {
+				'id': "knight",
+				'source': "assets/sprites/char_knight_",
+				'sound_loop': '',
+				'animation_count': 1,
+				'direction': 1, //1 for right, -1 for left
+				'time': 0,
+				'actions': [] //Can be "move, x, y", or "attack, time" or "idle, time" or "message, character, text"
+			}
+
+			var ninja = {
+				'id': "ninja",
+				'source': "assets/sprites/char_ninja_",
+				'sound_loop': '',
+				'animation_count': 1,
+				'direction': 1, //1 for right, -1 for left
+				'time': 0,
+				'actions': [] //Can be "move, x, y", or "attack, time" or "idle, time" or "message, character, text"
+			}
+
+			var healer = {
+				'id': "healer",
+				'source': "assets/sprites/char_healer_",
+				'sound_loop': '',
+				'animation_count': 1,
+				'direction': 1, //1 for right, -1 for left
+				'time': 0,
+				'actions': [] //Can be "move, x, y", or "attack, time" or "idle, time" or "message, character, text"
+			}
+
+			var monster_1 = {
+				'id': "monster_1",
+				'source': "assets/sprites/monster_",
+				'sound_loop': '',
+				'animation_count': 1,
+				'direction': 1, //1 for right, -1 for left
+				'time': 0,
+				'actions': [] //Can be "move, x, y", or "attack, time" or "idle, time" or "message, character, text"
+			}
+
+			var graal = {
+				'id': "graal",
+				'source': "assets/sprites/room_2_graal_",
+				'animation_count': 1,
+				'direction': 1, //1 for right, -1 for left
+				'time': 0,
+				'actions': [] //Can be "move, x, y", or "attack, time" or "idle, time" or "message, character, text"
+			}
+
+			var tchat = {
+				'id': 'tchat_area',
+				'source': '',
+				'tchat_count': 0,
+				'time': 0,
+				'currrent_messages' : [],
+				'scenario': []
+			}
+
+			
+
+			//Launches correct scenario
+			function playClick(){
+				if (!hasPlayed){
+
+					//Launches theme music
+					document.getElementById("music_theme").play();
+					document.getElementById("music_construction").pause();
+
+					//Removing button
+					document.getElementById("button").src = "assets/sprites/room_2_door_opened.png";
+
+					var  id_openWalls = [];
+					for(i = 0; i < closedWalls.length; i++){
+						closedWalls[i].src = closedWalls[i].src.substring(0, closedWalls[i].src.length - 13) + "selected.gif";
+						closedWalls[i].style.zIndex = "9";
+					}
+					for(i = 0; i < openWalls.length; i++){
+						openWalls[i].src = "";
+						id_openWalls.push(openWalls[i].id);
+					}
+
+
+					index_wall_1 = id_openWalls.indexOf("wall_1");
+					index_wall_2 = id_openWalls.indexOf("wall_2");
+					index_wall_3 = id_openWalls.indexOf("wall_3");
+
+
+					//Node  2.1 : Pas de trésor + 0 Monstre / Mode conflit
+					if (id_openWalls.length == 0 && parameters.scenario == "2"){
+						knight.actions.push(
+						"appear",
+						"sound","knight_emote",
+						"message", "knight", "C’est quoi ce donjon, une aire de pique nique ? ",
+						"message", "ninja", "On xp rien dans ce truc !",
+						"move", 560, 350,
+						"idle", 4000,
+						"move", 500, 520
+							);
+
+						ninja.actions.push(
+						"appear",
+						"idle", 6000,
+						"move", 510, 525
+							);
+
+						healer.actions.push(
+						"appear",
+						"idle", 6000,
+						"move", 515, 515,
+						"idle", 1000,
+						"ENDLEVEL"
+							);
+
+						argument = "1";
+					}
+					
+					//Node 2.2 : Pas de trésor + 0 Monstre / Mode coop
+					else if (id_openWalls.length == 0 && parameters.scenario == "1"){
+						knight.actions.push(
+							"appear",
+							"sound","knight_emote",
+							"message", "knight", "Magnifique, une salle vide.",
+							"message", "knight", "On va pouvoir se soigner un peu.",
+							"message", "system", "Legend27 joue du pipeau",
+							"message", "healer", "Charmant",
+							"message", "ninja", "Tu fé quoi avec ton pipo la mec ?",
+							"message", "knight", "Je célèbre notre victoire !",
+							"message", "knight", "Et pour ta culture ce n’est pas un pipeau mais un flageolet.",
+							"message", "knight", "Une petite flûte à bec à base d’os.",
+							"message", "ninja", "Bon les gars on été bon mais faut pas stop là.",
+							"message", "healer", " Le ninja a raison, en voiture Simone !",
+							"idle", 4000,
+							"move", 560, 350,
+							"idle", 20000,
+							"move", 500, 520
+						);
+
+						ninja.actions.push(
+							"appear",
+							"idle", 10000,
+							"move", 510, 360,
+							"idle", 18000,
+							"move", 500, 520
+						);
+
+						healer.actions.push(
+							"appear",
+							"idle", 8000,
+							"move", 440, 330,
+							"idle", 20000,
+							"move", 500, 520,
+							"ENDLEVEL"
+						);
+						argument = "2";	
+					}
+					
+					//Node 2.3 : Pas de trésor +  Monstre / Mode coop 
+					else if (index_wall_2 == -1){
+						knight.actions.push(
+							"appear",
+							"sound","knight_emote",
+							"message", "knight", "Magnifique, une salle vide.",
+							"message", "knight", "On va pouvoir se soigner un peu.",
+							"message", "healer", "Je comprends pas pourquoi il laisse une salle inoccupée comme ça,",
+							"message", "healer", "ça gâche vachement l’espace non ?",
+							"message", "ninja", " T’es vraiment noob, c’est parce qui y a un boss apré !",
+							"message", "healer", "Noob ? Qu’est-ce ?",
+							"message", "knight", "#@!”#& les gars derrière vous !",
+							"idle", 20000,
+							"move", 360, 350,
+							"move", 362, 350,
+							"attack", 6000,
+							"message", "ninja", "c chauuud on a failli se faire buter !",
+							"message", "knight", "Heureusement que @Charlene.53 était là.",
+							"idle", 10000,
+							"move", 500, 520,
+							"message", "healer", "Alors qui roxx maintenant ?",
+							"message", "healer", "...",
+							"message", "healer", "noob"	
+						);
+
+						ninja.actions.push(
+							"appear",
+							"idle", 18000,
+							"move", 510, 360,
+							"idle", 1500,
+							"move", 460, 370,
+							"attack", 5000,
+							"idle", 5000,
+							"move", 500, 520
+						);
+
+						healer.actions.push(
+							"appear",
+							"idle", 18000,
+							"move", 440, 330,
+							"idle", 2000,
+							"attack", 6000,
+							"idle", 14000,
+							"move", 500, 520,
+							"ENDLEVEL"
+						);
+						
+						monster_1.actions.push(
+							"idle", 19000,
+							"move", 400, 375,
+							"attack", 7000,
+							"disappear",
+							"death",1000
+						);
+
+						argument = "3";
+					}
+					
+					// Node 2.4 : Pas de Monstre +  Trésor / Mode coop et conflit
+					else if (index_wall_1 == -1){
+						knight.actions.push(
+							"appear",
+							"sound","knight_emote",
+							"message", "knight", "Du loot ! Prem’s !",
+							"message", "ninja", "Cé moi qui est le plus defoncer de monstre, cé à moi.",
+							"message", "healer", "C’est quoi un loot ?",
+							"message", "knight", "Trop tard…. C’est la coupe-enbrosse ! J’ai la collection complète maintenant !",
+							"message", "ninja", "Mec elle sert a rien ta pauvre coupe !",
+							"message", "knight", "A ouais ? Grâce à elle je peux faire ça :",
+							"message", "system", "Legend27 sonne la charge.",
+							"message", "healer", "Non mais vraiment n’insistez pas.",
+							"message", "healer", "je n’ai fait que vous soigner pendant tout le combat,",
+							"message", "healer", "je mérite pas cette coupe.",
+							"message", "ninja", "#RagingGrandMa",
+							"idle", 2000,
+							"move", 580, 280,
+							"sound", "knight_gettingthings",
+							"idle", 16000,
+							"sound","knight_godspeed",
+							"idle", 3000,
+							"idle", 10000,
+							"move", 515, 515,
+							"move", 535,535,
+							"ENDLEVEL"
+						);
+
+						ninja.actions.push(
+							"appear",
+							"idle", 18000,
+							"move", 450, 330,
+							"idle", 13000,
+							"move", 515, 515,
+							"move", 545,545
+						);
+
+						healer.actions.push(
+							"appear",
+							"idle", 10000,
+							"move", 540, 260,
+							"idle", 18000,
+							"move", 515, 515,
+							"move", 525,525
+						);
+
+						graal.actions.push(
+							"idle", 4500,
+							"disappear"
+						);
+
+						argument = "4";
+					}
+
+					// Node 2.5 : Trésor +  Monstre / Mode coop et conflit
+					else if (id_openWalls.length == 2){
+						knight.actions.push(
+							"appear",
+							"sound","knight_emote",
+							"message", "knight", "Du loot ! Prem’s !",
+							"message", "ninja", "Cé moi qui est le plus defoncer de monstre, c à moi.",
+							"message", "healer", "C’est quoi un loot ?",
+							"message", "ninja", "Les mecs, derrière vous !",
+							"message", "healer", "Je peux avoir une part de loot aussi s’il vous plaît ? ",
+							"message", "knight", "Non mais ça ne sert vraiment à rien @Charlene27",
+							"message", "system", "@Legend27 sonne la charge",
+							"message", "ninja", "Les mecs je me fais défonce, go backup les noobs !",
+							"message", "ninja", "Putain les mecs on back up le DPS ?",
+							"message", "healer", "Si tu t’exprimais clairement mon garçon ça marcherait mieux. ",
+							"message", "healer", "#Disorthographie.",
+							"idle", 2000,
+							"move", 580, 280,
+							"sound", "knight_gettingthings",
+							"idle", 15000,
+							"sound", "knight_godspeed",
+							"move", 460, 380,
+							"attack", 8000,
+							"idle", 3000,
+							"move", 515, 515,
+							"ENDLEVEL"
+							);
+
+						ninja.actions.push(
+							"appear",
+							"idle", 3000,
+							"move", 450, 330,
+							"idle", 8000,
+							"move", 380, 350,
+							"attack", 15000,
+							"move", 500, 520
+						);
+
+						healer.actions.push(
+							"appear",
+							"idle", 10000,
+							"move", 540, 260,
+							"idle", 15000,
+							"move", 370, 330,
+							"attack", 500,
+							"move", 510, 525
+						);
+							
+						monster_1.actions.push(
+							"idle", 7000,
+							"move", 400, 375,
+							"attack", 20000,
+							"disappear",
+							"death",1000
+						);
+
+						graal.actions.push(
+							"idle", 4500,
+							"disappear"
+						);
+
+						argument = "5";
+					}
+
+					hasPlayed = true;
+				}
+			}
+
+			//Launches every necessary actions
+			function playScenario(){
+				actionChar(knight);
+				actionChar(ninja);
+				actionChar(healer);
+				actionChar(monster_1);
+				actionChar(graal);
+
+			}
+
+			//Launches every necessary animation
+			function playAnimations(){
+				animChar(knight);
+				animChar(ninja);
+				animChar(healer);
+				animMonster(monster_1);
+				animChar(graal);
+			}
+
+		</script>
+		<script src="javascript/discorde.js"></script>
+	</head>
+	<body onload="initCanvas();">
+		<div id="game_area">
+			<img src="assets/sprites/room_2_background.gif" alt="" id="background" style="z-index:6;"> 
+			<img src="assets/sprites/black_background.png" alt="" id="black_background" style="opacity:1;z-index:11;height:1400px;width:2400px;">
+
+			<img src="assets/sprites/room_2_wall_1_clickablearea.png" alt="" id="wall_1" onclick="clickWall(this)" style="top:397px;left:181px;">
+			<img src="assets/sprites/room_2_wall_2_clickablearea.png" alt="" id="wall_2" onclick="clickWall(this)" style="top:175px;left:499px;z-index:9;">
+
+			<img src="assets/sprites/char_knight_idle_left_1.png" alt="" id="knight" style="opacity:0;top:260px;left:300px;height:70px;width:70px;opacity:0">
+			<img src="assets/sprites/char_healer_idle_left_1.png" alt="" id="healer" style="opacity:0;top:300px;left:270px;height:70px;width:70px;opacity:0;">
+			<img src="assets/sprites/char_ninja_idle_left_1.png" alt="" id="ninja" style="opacity:0;top:290px;left:240px;height:70px;width:70px;opacity:0;">
+
+			<img src="assets/sprites/monster_idle_left_1.gif" alt="" id="monster_1" style="top:450px;left:250px;height:70px;width:110px;">
+
+			<img src="assets/sprites/room_2_graal_idle_right_1.png" alt="" id="graal" style="top:260px;left:610px;height:70px;width:70px; z-index:7;">
+
+			<img src="assets/sprites/room_2_door_closed.png" alt="" id="button" onclick="playClick()" style="top:233px;left:223px; opacity:1;">
+		</div>
+		<div id="tchat_area", style="bottom:220px; left:55%; z-index:10; display:block; width:400px">
+		</div>
+
+
+		<!-- Music -->
+		<audio id="music_theme" loop>
+			<source src="assets/sound/general_music_theme.wav" type="audio/wav">
+		</audio>
+		<audio id="music_construction" loop autoplay>
+			<source src="assets/sound/general_music_construction.wav" type="audio/wav">
+		</audio>
+
+		<!-- General sounds-->
+		<audio id="connexion" autoplay>
+			<source src="assets/sound/general_Connection_Begining.wav" type="audio/wav">
+		</audio>
+		<audio id="door_open">
+			<source src="assets/sound/general_Door_Open.wav" type="audio/wav">
+		</audio>
+		<audio id="wall_cancel">
+			<source src="assets/sound/general_Wall_Cancel.wav" type="audio/wav">
+		</audio>
+		<audio id="wall_create">
+			<source src="assets/sound/general_Wall_Create.wav" type="audio/wav">
+		</audio>
+		<audio id="chat_sound">
+			<source src="assets/sound/general_chat_sound.wav" type="audio/wav">
+		</audio>
+
+
+		<!-- Healer sounds-->
+		<audio id="healer_death">
+			<source src="assets/sound/char_Healer_Death.wav" type="audio/wav">
+		</audio>
+		<audio id="healer_emote">
+			<source src="assets/sound/char_Healer_Emote.wav" type="audio/wav">
+		</audio>
+		<audio id="healer_heal">
+			<source src="assets/sound/char_Healer_Heal.wav" type="audio/wav">
+		</audio>
+		<audio id="healer_hit" loop>
+			<source src="assets/sound/char_Healer_Hit.wav" type="audio/wav">
+		</audio>
+
+		<!-- Knight sounds-->
+		<audio id="knight_death">
+			<source src="assets/sound/char_Knight_Death.wav" type="audio/wav">
+		</audio>
+		<audio id="knight_emote">
+			<source src="assets/sound/char_Knight_Emote.wav" type="audio/wav">
+		</audio>
+		<audio id="knight_godspeed">
+			<source src="assets/sound/char_Knight_godspeed.wav" type="audio/wav">
+		</audio>
+		<audio id="knight_hit" loop>
+			<source src="assets/sound/char_Knight_Hit.wav" type="audio/wav">
+		</audio>
+        <audio id="knight_gettingthings">
+			<source src="assets/sound/char_Knight_Gettingthings.wav" type="audio/wav">
+		</audio>
+
+		<!-- Ninja sounds-->
+		<audio id="ninja_death">
+			<source src="assets/sound/char_Ninja_Death.wav" type="audio/wav">
+		</audio>
+		<audio id="ninja_emote">
+			<source src="assets/sound/char_Ninja_Emote.wav" type="audio/wav">
+		</audio>
+		<audio id="ninja_hit" loop>
+			<source src="assets/sound/char_Ninja_Hit.wav" type="audio/wav">
+		</audio>
+
+		<!-- Monster sounds-->
+		<audio id="monster_death">
+			<source src="assets/sound/monster_Death.wav" type="audio/wav">
+		</audio>
+
+		<canvas id="canvas" width="1097" height="784"></canvas>
+	</body>
+	
+</html>
